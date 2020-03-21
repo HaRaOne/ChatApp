@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Socket.IO chat</title>
+        <!-- bootstrap -->
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+        <style>
+            body{
+                background: #D4CFCC;
+            }
+            /* メッセージ・ユーザー表示領域 */
+            /*全体*/
+            div.chat_area{ display: block; margin-left: 5%; margin-top: 3%; margin-right: 5%; }
+            /*messages*/
+            div.chat_messages{ display: inline-block; width: 60%; height: 70%; }
+            /*users*/
+            div.online_users{ display: inline-block; width: 35%; height: 70%; }
+            /*design badge*/
+            div.badge{ background: #1F130B; font-size: 20px; }
+
+            /* メッセージ送信領域 */
+            /*ボタンデザイン*/
+            button.btn{ background: #59727E; width: 20%; }
+            /*全体*/
+            div.send_message_area{ display: block; margin-left: 5%; margin-right: 5%; margin-top: 2%; }
+            /* user */
+            div.input-group.mb-3{ display: block; width: 50%; margin-bottom: 0; }
+            /* write message */
+            form.message{ width: 100%; }
+            textarea.form-msbox_rows{ width: 60%; }
+            /* user + send */
+            div.users_send{ width: 35%; }
+            div.input-group.mb-3{ width: 100%; }
+            button.btn.btn-secondary.dropdown-toggle{ width: 100%; vertical-align: top; margin-bottom: 1%; }
+            button.btn.btn-primary.send{ width: 100%; vertical-align: top; }
+            button.btn.btn-primary.set{ width: 10%;}
+
+            div.users_send{ display: inline-block; }
+
+            /* ニックネーム設定領域 */
+            div.set_nickname{ display: block; margin-left: 5%; margin-right: 5%; }
+        </style>
+    </head>
+    <body>
+        <!-- 一度入力したら消えるフォーム -->
+        <!--
+        <div id="modalWindow">
+            <div>
+                 onsubmit="return false;": 押した時に実行を中止する
+                <form id="registNickname" action="" onsubmit="return false;">
+                    <p>Enter your name</p>
+                    <input id="nickname" autocomplete="off" placeholder="your name"/>
+                    <button type="button" class="btn btn-primary">Enter</button>
+                </form>
+            </div>
+        </div>
+        -->
+        <div class="chat_area">
+            <div class="chat_messages">
+                <div class="badge badge-primary text-wrap" style="width: 10rem;">
+                    Messages
+                </div>
+                <!--<ul id="messages">ああ</ul>-->
+                <textarea class="form-control" id="exampleFormControlTextarea1" rows="20"></textarea>
+            </div>
+            <div class="online_users">
+                <div class="badge badge-primary text-wrap" style="width: 10rem;">
+                    Online Users
+                </div>
+                <textarea class="form-control" id="exampleFormControlTextarea2" rows="20"></textarea>
+            </div>
+        </div>
+        <div class="send_message_area">
+            <div class="input-group input-group-lg">
+                <form action="" class="message">
+                    <textarea class="form-msbox_rows" id="msbox_rows" type="submit" rows="3"></textarea>
+                    <!--<input id="msbox" type="text" class="msbox" placeholder="Write Message..." aria-label="Sizing example input" aria-describedby="inputGroup-sizing-lg" autocomplete="off" />-->
+                    <div class="users_send">
+                        <div class="input-group mb-3">
+                            <input class="user_name" id="user_name" type="text" value="all"/>
+                            <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                user
+                            </button>
+                            <div class="dropdown-menu" id="users_list" aria-labelledby="dropdownMenu2">
+                                <button class="dropdown-item" type="button" value="all">all</button>
+                            </div>
+                            <button class="btn btn-primary send">Send</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="set_nickname">
+            <form action="" class="nickname">
+                <input id="nnbox" type="text" class="msbox" placeholder="Set Nickname" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-lg" autocomplete="off" />
+                <button class="btn btn-primary set">Set</button>
+            </form>
+        </div>
+        <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+        <script>
+            // $(function(){}): JQueryの構文
+            // 関数を予約状態にしてHTMLファイルの読み込みが完了したら実行される
+
+            // socket.io のモジュール
+            let socket = io();
+            let nickname_me = "";
+            let latest_message = "";
+
+            // イベント用変数
+            let show_messages;
+            let show_users;
+
+            $(function (){
+                // submitされたら動く関数
+                //受信したメッセージを送信
+                $('form.message').submit(function(e){
+                    // prevent page reloading
+                    e.preventDefault();
+
+                    /*
+                    // 空白とかだけだったらだめ
+                    // \S: 空白以外の何かしらの文字
+                    if (/\S/.test($('#msbox').val()) == false){
+                        console.log("only space is bad");
+                        $('#msbox').val('');
+                        return false;
+                    }
+                    // 直前に送ったメッセージと同じだった場合は無効
+                    if (latest_message ==  $('#msbox').val()){
+                        console.log("Do not send same message!!");
+                        return false;
+                    }
+
+                    latest_message = $('#msbox').val();
+                    
+                    // イベントの発火，接続している全員にdataを送信
+                    socket.emit('chat message', $('#msbox').val(), nickname_me);
+                    $('#msbox').val('');
+                    return false;
+                    */
+
+                    if (/\S/.test($('#msbox_rows').val()) == false){
+                        console.log("only space is bad");
+                        $('#msbox_rows').val('');
+                        return false;
+                    }
+                    // 直前に送ったメッセージと同じだった場合は無効
+                    if (latest_message ==  $('#msbox_rows').val()){
+                        console.log("Do not send same message!!");
+                        return false;
+                    }
+
+                    latest_message = $('#msbox_rows').val();
+                    console.log(latest_message);
+                    
+                    // イベントの発火，接続している全員にdataを送信
+                    socket.emit('chat message', $('#msbox_rows').val(), nickname_me, $('#user_name').val());
+                    $('#msbox_rows').val('');
+                    return false;
+                });
+
+                $('form.nickname').submit(function(e){
+                    nickname_me = $('#nnbox').val();
+                    // prevent page reloading
+                    e.preventDefault();
+                    // イベントの発火，接続している全員にdataを送信
+                    socket.emit('set nickname', $('#nnbox').val());
+                    $('#nnbox').val('');
+                    return false;
+                });
+
+                $('.dropdown-menu .dropdown-item').click(function(){
+                    console.log("select name");
+                    let visibleItem = $('.dropdown-toggle', $(this).closest('.dropdown'));
+                    visibleItem.text($(this).attr('value'));
+                });
+
+                // 1. 関数用変数に関数を代入
+                setEvent();
+
+                // 2. イベントの emit の受信先を設定
+                socket.on('show_messages', show_messages);
+                socket.on('show_users', show_users);
+
+                // 受信したメッセージを表示
+                // クライアント側の処理
+                socket.on('chat message', function(msg, nickname, date){
+                    console.log('from: ' + nickname);
+                    // $('#messages').append($('<li>').text(msg));
+                    if (nickname_me == nickname){
+                        addMessageList("I", msg, date)
+                    }
+                    else{
+                        addMessageList(nickname, msg, date);
+                    }
+                });
+
+                //onlineのuserが増えた時
+                socket.on('add online users', function(nickname){
+                    // $('#messages').append($('<li>').text(msg));
+                    addUsersList(nickname);
+                    addOnlineList(nickname);
+                });
+            });
+
+            function setEvent(){
+                // イベント用関数
+                show_messages = function(messages){
+                    messages.forEach(element => {
+                        document.getElementById('exampleFormControlTextarea1').value
+                        = "";
+                        document.getElementById('exampleFormControlTextarea1').value
+                        += element + "\n";
+                    });
+                    
+                };
+                
+                show_users = function(login_users) {
+                    for (let key in login_users){
+                        addOnlineList(login_users[key]);
+                    }
+                };
+            }
+
+            function addUsersList(nickname){
+                const btn_users_list = document.createElement("button");
+                btn_users_list.setAttribute("class","dropdown-item");
+                btn_users_list.setAttribute("type","button");
+                btn_users_list.setAttribute("value",nickname);
+                const text = document.createTextNode(nickname);
+                btn_users_list.appendChild(text);
+                users_list.appendChild(btn_users_list);
+            }
+
+            // リストへの追加関数
+            function addMessageList(nickname, message, date){
+                document.getElementById('exampleFormControlTextarea1').value
+                        += "○" + nickname + " [" + date +  "]" + "\n";
+                document.getElementById('exampleFormControlTextarea1').value
+                        += message + "\n";
+            }
+            
+            function addOnlineList(nickname){
+                document.getElementById('exampleFormControlTextarea2').value
+                += nickname + "\n";
+            }
+        </script>
+    </body>
+</html>
