@@ -21,8 +21,15 @@ io.on('connection', function(socket){
     console.log('id: ' + socket.id);
 
     // 接続してきたクライアントにのみ送信
-    io.to(socket.id).emit('show_messages', messages, login_users);
-    io.to(socket.id).emit('show_users', messages, login_users);
+    io.to(socket.id).emit('show_messages', messages);
+    io.to(socket.id).emit('show_users', login_users);
+
+    // disconnectというイベントが来た時にio.emitが動くようにする
+    socket.on('disconnect', function(){
+        console.log('user disconnected');
+        delete login_users[socket.id];
+        io.emit("show_users", login_users);
+    });
 
     // socket.emit で chat messageを受け取ったら動く
     // イベントの検知，送信されたdataを受信
@@ -41,13 +48,6 @@ io.on('connection', function(socket){
         else{
             io.to(socketid).emit('chat message', msg, login_users[socket.id], date.toLocaleString("ja"));
         }
-    });
-
-    // disconnectというイベントが来た時にio.emitが動くようにする
-    socket.on('disconnect', function(){
-        console.log('user disconnected');
-        io.emit("user disconnected", login_users[socketid]);
-        delete login_users[socketid];
     });
 
     //set nickname

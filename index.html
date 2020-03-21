@@ -113,10 +113,12 @@
             // イベント用変数
             let show_messages;
             let show_users;
+            let chat_message;
+            let add_online_users;
 
             $(function (){
-                // submitされたら動く関数
-                //受信したメッセージを送信
+                // ボタンなどクリックした時のイベントを登録
+                // 受信したメッセージを送信
                 $('form.message').submit(function(e){
                     // prevent page reloading
                     e.preventDefault();
@@ -141,16 +143,19 @@
                     return false;
                 });
 
+                // ニックネームを登録
                 $('form.nickname').submit(function(e){
-                    nickname_me = $('#nnbox').val();
                     // prevent page reloading
                     e.preventDefault();
+                    
+                    nickname_me = $('#nnbox').val();
                     // イベントの発火，接続している全員にdataを送信
                     socket.emit('set nickname', $('#nnbox').val());
                     $('#nnbox').val('');
                     return false;
                 });
 
+                // 送信先ユーザーを決定
                 $('.dropdown-menu .dropdown-item').click(function(){
                     console.log("select name");
                     let visibleItem = $('.dropdown-toggle', $(this).closest('.dropdown'));
@@ -161,36 +166,35 @@
                 setEvent();
 
                 // 2. イベントの emit の受信先を設定
+                /**
+                 * socket.emit
+                 * 1. connection
+                 * ・ show_messages
+                 * ・ show_users
+                 * 
+                 * 2. disconnect
+                 * ・ show_users
+                 * 
+                 * 3. chat message
+                 * ・ chat message
+                 * 
+                 * 4. set nickname
+                 * ・ add online users
+                */
                 socket.on('show_messages', show_messages);
                 socket.on('show_users', show_users);
-
-                // 受信したメッセージを表示
-                // クライアント側の処理
-                socket.on('chat message', function(msg, nickname, date){
-                    console.log('from: ' + nickname);
-                    // $('#messages').append($('<li>').text(msg));
-                    if (nickname_me == nickname){
-                        addMessageList("I", msg, date)
-                    }
-                    else{
-                        addMessageList(nickname, msg, date);
-                    }
-                });
-
-                //onlineのuserが増えた時
-                socket.on('add online users', function(nickname){
-                    // $('#messages').append($('<li>').text(msg));
-                    addUsersList(nickname);
-                    addOnlineList(nickname);
-                });
+                socket.on('chat message', chat_message);
+                socket.on('add online users', add_online_users);
             });
 
             function setEvent(){
                 // イベント用関数
                 show_messages = function(messages){
+                    // 初期化
+                    document.getElementById('exampleFormControlTextarea1').value
+                    = "";
                     messages.forEach(element => {
-                        document.getElementById('exampleFormControlTextarea1').value
-                        = "";
+                        // 追加
                         document.getElementById('exampleFormControlTextarea1').value
                         += element + "\n";
                     });
@@ -198,9 +202,28 @@
                 };
                 
                 show_users = function(login_users) {
+                    // 初期化
+                    document.getElementById('exampleFormControlTextarea2').value
+                    = "";
+                    // 追加
                     for (let key in login_users){
                         addOnlineList(login_users[key]);
                     }
+                };
+
+                chat_message = function(msg, nickname, date){
+                    console.log('from: ' + nickname);
+                    if (nickname_me == nickname){
+                        addMessageList("I", msg, date)
+                    }
+                    else{
+                        addMessageList(nickname, msg, date);
+                    }
+                };
+
+                add_online_users = function(nickname){
+                    addOnlineList(nickname);
+                    addUsersList(nickname);
                 };
             }
 
