@@ -121,28 +121,6 @@
                     // prevent page reloading
                     e.preventDefault();
 
-                    /*
-                    // 空白とかだけだったらだめ
-                    // \S: 空白以外の何かしらの文字
-                    if (/\S/.test($('#msbox').val()) == false){
-                        console.log("only space is bad");
-                        $('#msbox').val('');
-                        return false;
-                    }
-                    // 直前に送ったメッセージと同じだった場合は無効
-                    if (latest_message ==  $('#msbox').val()){
-                        console.log("Do not send same message!!");
-                        return false;
-                    }
-
-                    latest_message = $('#msbox').val();
-                    
-                    // イベントの発火，接続している全員にdataを送信
-                    socket.emit('chat message', $('#msbox').val(), nickname_me);
-                    $('#msbox').val('');
-                    return false;
-                    */
-
                     if (/\S/.test($('#msbox_rows').val()) == false){
                         console.log("only space is bad");
                         $('#msbox_rows').val('');
@@ -243,7 +221,7 @@
                 document.getElementById('exampleFormControlTextarea1').value
                         += message + "\n";
             }
-            
+
             function addOnlineList(nickname){
                 document.getElementById('exampleFormControlTextarea2').value
                 += nickname + "\n";
