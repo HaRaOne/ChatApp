@@ -27,7 +27,8 @@
             div.input-group.mb-3{ display: block; width: 50%; margin-bottom: 0; }
             /* write message */
             form.message{ width: 100%; }
-            textarea.form-msbox_rows{ width: 60%; }
+            div.write_message{ width: 60%; display: inline-block;}
+            textarea.form-msbox_rows{ width: 100%; }
             /* user + send */
             div.users_send{ width: 35%; }
             div.input-group.mb-3{ width: 100%; }
@@ -73,7 +74,10 @@
         <div class="send_message_area">
             <div class="input-group input-group-lg">
                 <form action="" class="message">
-                    <textarea class="form-msbox_rows" id="msbox_rows" type="submit" rows="3"></textarea>
+                    <div class="write_message">
+                        <textarea class="form-msbox_rows" id="msbox_rows" type="submit" rows="3"></textarea>
+                        <p id="show typing" >No one is typing...</p>
+                    </div>
                     <!--<input id="msbox" type="text" class="msbox" placeholder="Write Message..." aria-label="Sizing example input" aria-describedby="inputGroup-sizing-lg" autocomplete="off" />-->
                     <div class="users_send">
                         <div class="input-group mb-3">
@@ -147,7 +151,7 @@
                 $('form.nickname').submit(function(e){
                     // prevent page reloading
                     e.preventDefault();
-                    
+
                     nickname_me = $('#nnbox').val();
                     // イベントの発火，接続している全員にdataを送信
                     socket.emit('set nickname', $('#nnbox').val());
